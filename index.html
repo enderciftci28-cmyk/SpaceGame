@@ -9,20 +9,20 @@
 body{
   margin:0;
   background:black;
-  color:white;
-  font-family:Arial, sans-serif;
-  text-align:center;
   overflow:hidden;
+  text-align:center;
+  font-family:Arial;
+  color:white;
 }
 
 canvas{
+  background:linear-gradient(to bottom,#000015,#000000);
   display:block;
   margin:auto;
-  background:linear-gradient(to bottom,#000015,#000000);
-  touch-action:none;
   width:95vw;
   max-width:400px;
   height:auto;
+  touch-action:none;
   border-radius:12px;
 }
 
@@ -42,7 +42,7 @@ button{
 <body>
 
 <h2>🚀 Rocket Escape</h2>
-<p>PC: A/D oder Pfeile bewegen | Leertaste/Klick schiessen<br>Handy: Finger bewegen + tippen</p>
+<p>Maus/Finger bewegen die Rakete — Klick/Tippen schiesst</p>
 
 <canvas id="game" width="400" height="700"></canvas>
 <button id="restartBtn">Neu starten</button>
@@ -55,92 +55,91 @@ const restartBtn = document.getElementById("restartBtn");
 const W = canvas.width;
 const H = canvas.height;
 
-let rocket, bullets, meteors, stars;
-let score, best, gameOver;
-let keys = {};
+let rocket;
+let bullets;
+let meteors;
+let stars;
+let score;
+let best;
+let gameOver;
 
 best = Number(localStorage.getItem("rocketBest")) || 0;
 
 function resetGame(){
+
   rocket = {
     x:200,
-    y:590,
-    w:26,
-    h:60,
-    speed:6
+    y:580
   };
 
   bullets = [];
   meteors = [];
   stars = [];
+
   score = 0;
   gameOver = false;
+
   restartBtn.style.display = "none";
 
   for(let i=0;i<100;i++){
     stars.push({
       x:Math.random()*W,
       y:Math.random()*H,
-      s:Math.random()*2 + 1
+      s:Math.random()*2
     });
   }
 }
 
 function shoot(){
+
   if(gameOver) return;
 
   bullets.push({
     x:rocket.x - 2,
-    y:rocket.y - 45,
+    y:rocket.y - 40,
     w:5,
     h:18
   });
 }
 
 function spawnMeteor(){
+
   meteors.push({
     x:Math.random()*(W-60)+30,
     y:-50,
-    r:18 + Math.random()*22,
+    r:18 + Math.random()*20,
     speed:2 + Math.random()*3
   });
 }
 
 function endGame(){
+
   if(gameOver) return;
 
   gameOver = true;
 
   if(score > best){
     best = score;
-    localStorage.setItem("rocketBest", best);
+    localStorage.setItem("rocketBest",best);
   }
 
   restartBtn.style.display = "inline-block";
 }
 
 function update(){
+
   if(gameOver) return;
 
   score++;
 
-  if(keys["ArrowLeft"] || keys["a"] || keys["A"]){
-    rocket.x -= rocket.speed;
-  }
-
-  if(keys["ArrowRight"] || keys["d"] || keys["D"]){
-    rocket.x += rocket.speed;
-  }
-
-  if(rocket.x < 30) rocket.x = 30;
-  if(rocket.x > W - 30) rocket.x = W - 30;
-
-  if(Math.random() < 0.035){
+  if(Math.random() < 0.03){
     spawnMeteor();
   }
 
   for(let s of stars){
-    s.y += 1.5;
+
+    s.y += 1;
+
     if(s.y > H){
       s.y = 0;
       s.x = Math.random()*W;
@@ -154,159 +153,192 @@ function update(){
   bullets = bullets.filter(b => b.y > -30 && !b.dead);
 
   for(let m of meteors){
+
     m.y += m.speed;
 
     let dx = rocket.x - m.x;
     let dy = rocket.y - m.y;
+
     let dist = Math.sqrt(dx*dx + dy*dy);
 
-    if(dist < m.r + 20){
+    if(dist < m.r + 18){
       endGame();
     }
 
     for(let b of bullets){
+
       let dx2 = b.x - m.x;
       let dy2 = b.y - m.y;
+
       let dist2 = Math.sqrt(dx2*dx2 + dy2*dy2);
 
       if(dist2 < m.r){
+
         m.dead = true;
         b.dead = true;
+
         score += 100;
       }
     }
   }
 
-  meteors = meteors.filter(m => !m.dead && m.y < H + 80);
-  bullets = bullets.filter(b => !b.dead);
+  meteors = meteors.filter(m => !m.dead && m.y < H+80);
 }
 
 function drawRocket(){
+
   ctx.fillStyle = "orange";
+
   ctx.beginPath();
-  ctx.moveTo(rocket.x-8, rocket.y+35);
-  ctx.lineTo(rocket.x, rocket.y+70+Math.random()*12);
-  ctx.lineTo(rocket.x+8, rocket.y+35);
+  ctx.moveTo(rocket.x-8,rocket.y+35);
+  ctx.lineTo(rocket.x,rocket.y+65+Math.random()*12);
+  ctx.lineTo(rocket.x+8,rocket.y+35);
   ctx.fill();
 
   ctx.fillStyle = "silver";
+
   ctx.beginPath();
-  ctx.moveTo(rocket.x, rocket.y-40);
-  ctx.lineTo(rocket.x-18, rocket.y+25);
-  ctx.lineTo(rocket.x+18, rocket.y+25);
+  ctx.moveTo(rocket.x,rocket.y-40);
+  ctx.lineTo(rocket.x-18,rocket.y+25);
+  ctx.lineTo(rocket.x+18,rocket.y+25);
   ctx.closePath();
   ctx.fill();
 
   ctx.fillStyle = "#55ccff";
+
   ctx.beginPath();
-  ctx.arc(rocket.x, rocket.y-8, 7, 0, Math.PI*2);
+  ctx.arc(rocket.x,rocket.y-8,7,0,Math.PI*2);
   ctx.fill();
 
   ctx.fillStyle = "red";
+
   ctx.beginPath();
-  ctx.moveTo(rocket.x-18, rocket.y+12);
-  ctx.lineTo(rocket.x-32, rocket.y+35);
-  ctx.lineTo(rocket.x-10, rocket.y+25);
+  ctx.moveTo(rocket.x-18,rocket.y+10);
+  ctx.lineTo(rocket.x-30,rocket.y+35);
+  ctx.lineTo(rocket.x-10,rocket.y+24);
   ctx.fill();
 
   ctx.beginPath();
-  ctx.moveTo(rocket.x+18, rocket.y+12);
-  ctx.lineTo(rocket.x+32, rocket.y+35);
-  ctx.lineTo(rocket.x+10, rocket.y+25);
+  ctx.moveTo(rocket.x+18,rocket.y+10);
+  ctx.lineTo(rocket.x+30,rocket.y+35);
+  ctx.lineTo(rocket.x+10,rocket.y+24);
   ctx.fill();
 }
 
 function draw(){
+
   ctx.clearRect(0,0,W,H);
 
   ctx.fillStyle = "white";
+
   for(let s of stars){
-    ctx.fillRect(s.x, s.y, s.s, s.s);
+    ctx.fillRect(s.x,s.y,s.s,s.s);
   }
 
   drawRocket();
 
   ctx.fillStyle = "yellow";
+
   for(let b of bullets){
-    ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.fillRect(b.x,b.y,b.w,b.h);
   }
 
   for(let m of meteors){
+
     ctx.fillStyle = "gray";
+
     ctx.beginPath();
-    ctx.arc(m.x, m.y, m.r, 0, Math.PI*2);
+    ctx.arc(m.x,m.y,m.r,0,Math.PI*2);
     ctx.fill();
 
     ctx.fillStyle = "#555";
+
     ctx.beginPath();
-    ctx.arc(m.x-6, m.y-5, m.r/4, 0, Math.PI*2);
+    ctx.arc(m.x-5,m.y-5,m.r/4,0,Math.PI*2);
     ctx.fill();
   }
 
   ctx.fillStyle = "white";
   ctx.font = "22px Arial";
-  ctx.fillText("Score: " + score, 20, 35);
-  ctx.fillText("Best: " + best, 20, 65);
+
+  ctx.fillText("Score: " + score,20,35);
+  ctx.fillText("Best: " + best,20,65);
 
   if(gameOver){
+
     ctx.fillStyle = "rgba(0,0,0,0.7)";
     ctx.fillRect(55,250,290,150);
 
     ctx.fillStyle = "white";
     ctx.font = "34px Arial";
-    ctx.fillText("Game Over", 100, 310);
+
+    ctx.fillText("Game Over",95,310);
 
     ctx.font = "24px Arial";
-    ctx.fillText("Score: " + score, 135, 350);
+    ctx.fillText("Score: " + score,130,350);
   }
 }
 
 function loop(){
+
   update();
   draw();
+
   requestAnimationFrame(loop);
 }
 
-document.addEventListener("keydown", function(e){
-  keys[e.key] = true;
+// Maus Bewegung
+canvas.addEventListener("mousemove", function(e){
 
-  if(e.code === "Space"){
-    e.preventDefault();
-    shoot();
-  }
+  const rect = canvas.getBoundingClientRect();
+
+  const mouseX = e.clientX - rect.left;
+
+  const scaleX = W / rect.width;
+
+  rocket.x = mouseX * scaleX;
+
+  if(rocket.x < 30) rocket.x = 30;
+  if(rocket.x > W-30) rocket.x = W-30;
 });
 
-document.addEventListener("keyup", function(e){
-  keys[e.key] = false;
-});
-
-canvas.addEventListener("click", function(){
-  shoot();
-});
-
-canvas.addEventListener("touchstart", function(e){
-  e.preventDefault();
-  shoot();
-}, {passive:false});
-
+// Handy Bewegung
 canvas.addEventListener("touchmove", function(e){
+
   e.preventDefault();
 
   const rect = canvas.getBoundingClientRect();
+
   const touchX = e.touches[0].clientX - rect.left;
+
   const scaleX = W / rect.width;
 
   rocket.x = touchX * scaleX;
 
   if(rocket.x < 30) rocket.x = 30;
-  if(rocket.x > W - 30) rocket.x = W - 30;
-}, {passive:false});
+  if(rocket.x > W-30) rocket.x = W-30;
 
+},{passive:false});
+
+// Schiessen PC
+canvas.addEventListener("click",shoot);
+
+// Schiessen Handy
+canvas.addEventListener("touchstart", function(e){
+
+  e.preventDefault();
+  shoot();
+
+},{passive:false});
+
+// Neustart
 restartBtn.onclick = resetGame;
 
 restartBtn.ontouchstart = function(e){
+
   e.preventDefault();
   resetGame();
+
 };
 
 resetGame();
