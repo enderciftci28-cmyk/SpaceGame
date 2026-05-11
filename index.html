@@ -3,22 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cube Jump</title>
+<title>Rocket Escape</title>
 
 <style>
 body{
     margin:0;
     overflow:hidden;
-    background:#111;
+    background:black;
     font-family:Arial;
     text-align:center;
     color:white;
 }
 
 canvas{
-    background:#222;
     display:block;
     margin:auto;
+    background:linear-gradient(to bottom,#000015,#000000);
     touch-action:manipulation;
 }
 
@@ -29,7 +29,7 @@ canvas{
     font-size:22px;
     border:none;
     border-radius:12px;
-    background:gold;
+    background:orange;
     font-weight:bold;
 }
 </style>
@@ -37,10 +37,10 @@ canvas{
 
 <body>
 
-<h2>Cube Jump</h2>
-<p>Leertaste, Klick oder Bildschirm tippen</p>
+<h2>🚀 Rocket Escape</h2>
+<p>Klick / Tippen = Schiessen</p>
 
-<canvas id="game" width="400" height="600"></canvas>
+<canvas id="game" width="400" height="700"></canvas>
 
 <button id="restartBtn">Neu starten</button>
 
@@ -49,174 +49,251 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const restartBtn = document.getElementById("restartBtn");
 
-let player;
-let obstacles;
+let rocket;
+let bullets;
+let meteors;
+let stars;
 let score;
-let bestScore = Number(localStorage.getItem("cubeBest")) || 0;
+let best;
 let gameOver;
-let started;
-let frame;
+
+best = Number(localStorage.getItem("rocketBest")) || 0;
 
 function resetGame(){
-    player = {
-        x:70,
-        y:500,
-        w:40,
-        h:40,
-        vy:0,
-        jumping:false
+
+    rocket = {
+        x:200,
+        y:580,
+        w:26,
+        h:60
     };
 
-    obstacles = [];
+    bullets = [];
+    meteors = [];
+    stars = [];
+
     score = 0;
-    frame = 0;
     gameOver = false;
-    started = false;
 
     restartBtn.style.display = "none";
-}
 
-function jump(){
-    if(gameOver) return;
-
-    started = true;
-
-    if(!player.jumping){
-        player.vy = -12;
-        player.jumping = true;
+    for(let i=0;i<100;i++){
+        stars.push({
+            x:Math.random()*400,
+            y:Math.random()*700,
+            s:Math.random()*2
+        });
     }
 }
 
+function shoot(){
+
+    if(gameOver) return;
+
+    bullets.push({
+        x:rocket.x,
+        y:rocket.y-20,
+        w:5,
+        h:18
+    });
+}
+
+function spawnMeteor(){
+
+    meteors.push({
+        x:Math.random()*350,
+        y:-50,
+        r:20 + Math.random()*20,
+        speed:2 + Math.random()*3
+    });
+}
+
 function endGame(){
+
     gameOver = true;
 
-    if(score > bestScore){
-        bestScore = score;
-        localStorage.setItem("cubeBest", bestScore);
+    if(score > best){
+        best = score;
+        localStorage.setItem("rocketBest",best);
     }
 
     restartBtn.style.display = "inline-block";
 }
 
-function addObstacle(){
-    obstacles.push({
-        x:400,
-        y:520,
-        w:35,
-        h:80
-    });
-}
-
 function update(){
 
-    if(!started || gameOver) return;
+    if(gameOver) return;
 
-    frame++;
+    score++;
 
-    player.vy += 0.6;
-    player.y += player.vy;
-
-    if(player.y >= 500){
-        player.y = 500;
-        player.vy = 0;
-        player.jumping = false;
+    if(Math.random() < 0.03){
+        spawnMeteor();
     }
 
-    if(frame % 100 === 0){
-        addObstacle();
+    // Sterne bewegen
+    for(let s of stars){
+        s.y += 1;
+
+        if(s.y > 700){
+            s.y = 0;
+            s.x = Math.random()*400;
+        }
     }
 
-    for(let obs of obstacles){
+    // Kugeln
+    for(let b of bullets){
+        b.y -= 8;
+    }
 
-        obs.x -= 5;
+    bullets = bullets.filter(b => b.y > -20);
 
-        if(
-            player.x < obs.x + obs.w &&
-            player.x + player.w > obs.x &&
-            player.y < obs.y + obs.h &&
-            player.y + player.h > obs.y
-        ){
+    // Meteoriten
+    for(let m of meteors){
+
+        m.y += m.speed;
+
+        // Kollision Rakete
+        let dx = rocket.x - m.x;
+        let dy = rocket.y - m.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+
+        if(dist < m.r + 15){
             endGame();
         }
 
-        if(!obs.passed && obs.x + obs.w < player.x){
-            obs.passed = true;
-            score++;
+        // Kugel Treffer
+        for(let b of bullets){
+
+            let dx2 = b.x - m.x;
+            let dy2 = b.y - m.y;
+            let dist2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+
+            if(dist2 < m.r){
+
+                m.dead = true;
+                b.dead = true;
+
+                score += 100;
+            }
         }
     }
 
-    obstacles = obstacles.filter(obs => obs.x + obs.w > 0);
+    meteors = meteors.filter(m => !m.dead && m.y < 800);
+    bullets = bullets.filter(b => !b.dead);
 }
 
 function draw(){
 
-    ctx.clearRect(0,0,400,600);
+    ctx.clearRect(0,0,400,700);
 
-    // Hintergrund
-    ctx.fillStyle = "#222";
-    ctx.fillRect(0,0,400,600);
+    // Sterne
+    ctx.fillStyle = "white";
 
-    // Boden
-    ctx.fillStyle = "#555";
-    ctx.fillRect(0,540,400,60);
+    for(let s of stars){
+        ctx.fillRect(s.x,s.y,s.s,s.s);
+    }
 
-    // Spieler
+    // Raketenflamme
+    ctx.fillStyle = "orange";
+    ctx.beginPath();
+    ctx.moveTo(rocket.x-8,rocket.y+35);
+    ctx.lineTo(rocket.x,rocket.y+65+Math.random()*15);
+    ctx.lineTo(rocket.x+8,rocket.y+35);
+    ctx.fill();
+
+    // Rakete
+    ctx.fillStyle = "silver";
+
+    ctx.beginPath();
+    ctx.moveTo(rocket.x,rocket.y-35);
+    ctx.lineTo(rocket.x-18,rocket.y+25);
+    ctx.lineTo(rocket.x+18,rocket.y+25);
+    ctx.fill();
+
+    // Fenster
+    ctx.fillStyle = "#55ccff";
+    ctx.beginPath();
+    ctx.arc(rocket.x,rocket.y-5,7,0,Math.PI*2);
+    ctx.fill();
+
+    // Flügel
     ctx.fillStyle = "red";
-    ctx.fillRect(player.x, player.y, player.w, player.h);
 
-    // Hindernisse
-    ctx.fillStyle = "lime";
-    for(let obs of obstacles){
-        ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+    ctx.beginPath();
+    ctx.moveTo(rocket.x-18,rocket.y+15);
+    ctx.lineTo(rocket.x-30,rocket.y+35);
+    ctx.lineTo(rocket.x-10,rocket.y+25);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(rocket.x+18,rocket.y+15);
+    ctx.lineTo(rocket.x+30,rocket.y+35);
+    ctx.lineTo(rocket.x+10,rocket.y+25);
+    ctx.fill();
+
+    // Kugeln
+    ctx.fillStyle = "yellow";
+
+    for(let b of bullets){
+        ctx.fillRect(b.x,b.y,b.w,b.h);
+    }
+
+    // Meteoriten
+    ctx.fillStyle = "gray";
+
+    for(let m of meteors){
+
+        ctx.beginPath();
+        ctx.arc(m.x,m.y,m.r,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle = "#555";
+        ctx.beginPath();
+        ctx.arc(m.x-5,m.y-5,m.r/4,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.fillStyle = "gray";
     }
 
     // Score
     ctx.fillStyle = "white";
-    ctx.font = "bold 36px Arial";
-    ctx.fillText(score, 180, 60);
+    ctx.font = "24px Arial";
 
-    ctx.font = "20px Arial";
-    ctx.fillText("Best: " + bestScore, 145, 95);
-
-    if(!started && !gameOver){
-        ctx.font = "26px Arial";
-        ctx.fillText("Tippen zum Start", 105, 250);
-    }
+    ctx.fillText("Score: " + score,20,40);
+    ctx.fillText("Best: " + best,20,75);
 
     if(gameOver){
+
         ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.fillRect(60,200,280,140);
+        ctx.fillRect(60,250,280,150);
 
         ctx.fillStyle = "white";
-        ctx.font = "32px Arial";
-        ctx.fillText("Game Over", 110,250);
+        ctx.font = "36px Arial";
+        ctx.fillText("Game Over",90,310);
 
         ctx.font = "24px Arial";
-        ctx.fillText("Score: " + score, 130,290);
+        ctx.fillText("Score: " + score,125,355);
     }
 }
 
 function loop(){
+
     update();
     draw();
+
     requestAnimationFrame(loop);
 }
 
-document.addEventListener("keydown", function(e){
-    if(e.code === "Space"){
-        jump();
-    }
-});
+// PC
+document.addEventListener("click",shoot);
 
-canvas.onclick = function(){
-    jump();
-};
-
+// Handy
 canvas.ontouchstart = function(e){
     e.preventDefault();
-    jump();
+    shoot();
 };
 
+// Restart
 restartBtn.onclick = function(){
     resetGame();
 };
