@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cube Jump</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#111;
+    font-family:Arial;
+    text-align:center;
+    color:white;
+}
+
+canvas{
+    background:#222;
+    display:block;
+    margin:auto;
+    touch-action:manipulation;
+}
+
+#restartBtn{
+    display:none;
+    margin-top:10px;
+    padding:14px 28px;
+    font-size:22px;
+    border:none;
+    border-radius:12px;
+    background:gold;
+    font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Cube Jump</h2>
+<p>Leertaste, Klick oder Bildschirm tippen</p>
+
+<canvas id="game" width="400" height="600"></canvas>
+
+<button id="restartBtn">Neu starten</button>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const restartBtn = document.getElementById("restartBtn");
+
+let player;
+let obstacles;
+let score;
+let bestScore = Number(localStorage.getItem("cubeBest")) || 0;
+let gameOver;
+let started;
+let frame;
+
+function resetGame(){
+    player = {
+        x:70,
+        y:500,
+        w:40,
+        h:40,
+        vy:0,
+        jumping:false
+    };
+
+    obstacles = [];
+    score = 0;
+    frame = 0;
+    gameOver = false;
+    started = false;
+
+    restartBtn.style.display = "none";
+}
+
+function jump(){
+    if(gameOver) return;
+
+    started = true;
+
+    if(!player.jumping){
+        player.vy = -12;
+        player.jumping = true;
+    }
+}
+
+function endGame(){
+    gameOver = true;
+
+    if(score > bestScore){
+        bestScore = score;
+        localStorage.setItem("cubeBest", bestScore);
+    }
+
+    restartBtn.style.display = "inline-block";
+}
+
+function addObstacle(){
+    obstacles.push({
+        x:400,
+        y:520,
+        w:35,
+        h:80
+    });
+}
+
+function update(){
+
+    if(!started || gameOver) return;
+
+    frame++;
+
+    player.vy += 0.6;
+    player.y += player.vy;
+
+    if(player.y >= 500){
+        player.y = 500;
+        player.vy = 0;
+        player.jumping = false;
+    }
+
+    if(frame % 100 === 0){
+        addObstacle();
+    }
+
+    for(let obs of obstacles){
+
+        obs.x -= 5;
+
+        if(
+            player.x < obs.x + obs.w &&
+            player.x + player.w > obs.x &&
+            player.y < obs.y + obs.h &&
+            player.y + player.h > obs.y
+        ){
+            endGame();
+        }
+
+        if(!obs.passed && obs.x + obs.w < player.x){
+            obs.passed = true;
+            score++;
+        }
+    }
+
+    obstacles = obstacles.filter(obs => obs.x + obs.w > 0);
+}
+
+function draw(){
+
+    ctx.clearRect(0,0,400,600);
+
+    // Hintergrund
+    ctx.fillStyle = "#222";
+    ctx.fillRect(0,0,400,600);
+
+    // Boden
+    ctx.fillStyle = "#555";
+    ctx.fillRect(0,540,400,60);
+
+    // Spieler
+    ctx.fillStyle = "red";
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+
+    // Hindernisse
+    ctx.fillStyle = "lime";
+    for(let obs of obstacles){
+        ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+    }
+
+    // Score
+    ctx.fillStyle = "white";
+    ctx.font = "bold 36px Arial";
+    ctx.fillText(score, 180, 60);
+
+    ctx.font = "20px Arial";
+    ctx.fillText("Best: " + bestScore, 145, 95);
+
+    if(!started && !gameOver){
+        ctx.font = "26px Arial";
+        ctx.fillText("Tippen zum Start", 105, 250);
+    }
+
+    if(gameOver){
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(60,200,280,140);
+
+        ctx.fillStyle = "white";
+        ctx.font = "32px Arial";
+        ctx.fillText("Game Over", 110,250);
+
+        ctx.font = "24px Arial";
+        ctx.fillText("Score: " + score, 130,290);
+    }
+}
+
+function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+document.addEventListener("keydown", function(e){
+    if(e.code === "Space"){
+        jump();
+    }
+});
+
+canvas.onclick = function(){
+    jump();
+};
+
+canvas.ontouchstart = function(e){
+    e.preventDefault();
+    jump();
+};
+
+restartBtn.onclick = function(){
+    resetGame();
+};
+
+restartBtn.ontouchstart = function(e){
+    e.preventDefault();
+    resetGame();
+};
+
+resetGame();
+loop();
+</script>
+
+</body>
+</html>
